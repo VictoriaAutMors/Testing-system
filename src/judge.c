@@ -7,9 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <err.h>
-//#include <limits.h>
+#include <limits.h>
 #include <sys/wait.h>
-//#include <math.h>
+#include <math.h>
 
 char *get_prg_name(char *name, char *dname)
 {
