@@ -22,7 +22,7 @@ char *get_prg_name(char *name, char *dname)
     name[len - 2] = '\0';
     char * right_name = (char *)malloc(sizeof(char) * 4096);
     strcpy(right_name, getenv("PWD"));
-    strcat(right_name, "/user1/");
+    strcat(right_name, "/../../tmp/");
     strcat(right_name, name);
     strcpy(name, right_name);
     free(right_name);
@@ -45,7 +45,7 @@ int main(int argc, char ** argv){
     pid_t pid;
     char *name  = NULL, *exec_path = NULL;
     struct dirent  *entry;
-    chdir(strcat(getenv("PWD"), "/../code"));
+    chdir(strcat(getenv("PWD"), "/../contest/code"));
     DIR* dir1 = opendir("user1");
     if (dir1 == NULL) {
         err(1, NULL);
