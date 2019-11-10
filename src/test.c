@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -21,16 +22,41 @@ char * GetRightWay(char * name){
 
 int main(int argc, char ** argv){
     chdir(strcat(getenv("PWD"), "/.."));
-    struct dirent *entry;
+    struct dirent *entry_tmp;
+    struct dirent *entry_code;
     DIR * dir1 = opendir("tmp");
+    DIR * dir2;
     char * right_way = NULL;
-    while((entry = readdir(dir1)) != NULL){
-        right_way = GetRightWay(entry->d_name);
+    char * directory_name = malloc(sizeof(char) * 2);
+    directory_name[1] = '\0';
+    while((entry_tmp = readdir(dir1)) != NULL){
+        right_way = GetRightWay(entry_tmp->d_name);
         char * cmd[3] = {right_way, right_way, NULL};
         if(fork() == 0){
             if(execvp(cmd[0], cmd) < 0){
                 err(1, NULL);
             }
+            chdir(strcat(getenv("PWD"), "/contest/tests"));
+            directory_name[0] = entry_tmp->d_name[0];
+            dir2 = opendir(directory_name);
+            while ((entry_code = readdir(dir2)) != NULL)
+            {
+                if(strstr(entry_code->d_name, ".dat") != NULL){
+                    char * filename = (char *)(malloc(sizeof(char) * 4096));
+                    strcpy(filename, getenv("PWD"));
+                    strcat(filename, "/");
+                    strcat(filename, directory_name);
+                    strcat(filename, "/");
+                    strcat(filename, entry_code->d_name);
+                    int fd = open(filename, O_RDONLY, 0644);
+                    dup2(fd, 0);
+                    close(fd);
+                    free(filename);
+                    break;
+                }
+            }
+             
+            chdir(strcat(getenv("PWD"), "/../.."));
             return EXIT_SUCCESS;
         }
         wait(NULL);
