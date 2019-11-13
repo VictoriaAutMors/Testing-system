@@ -41,7 +41,7 @@ char *get_exec_path(char *exec_path, char *dname)
     return exec_path;
 }
 
-int main(int argc, char ** argv){
+int main(){
     pid_t pid;
     char *name  = NULL, *exec_path = NULL;
     struct dirent  *entry;

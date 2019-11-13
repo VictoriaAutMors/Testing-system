@@ -20,6 +20,18 @@ char * GetRightWay(char * name){
     return right_way;
 }
 
+int count_dat(DIR * dir){
+    struct dirent *entry;
+    int i = 0;
+    while ((entry = readdir(dir)) != NULL)
+    {
+        if(strstr(entry->d_name, ".dat") != NULL){
+            i++;
+        }
+    }
+    return i; 
+}
+
 int main(int argc, char ** argv){
     chdir(strcat(getenv("PWD"), "/.."));
     struct dirent *entry_tmp;
@@ -38,30 +50,40 @@ int main(int argc, char ** argv){
             chdir(strcat(getenv("PWD"), "/contest/tests"));
             directory_name[0] = entry_tmp->d_name[0];
             dir2 = opendir(directory_name);
-            while ((entry_code = readdir(dir2)) != NULL)
-            {
-                if(strstr(entry_code->d_name, ".dat") != NULL){
-                    strcpy(filename, getenv("PWD"));
-                    strcat(filename, "/");
-                    strcat(filename, directory_name);
-                    strcat(filename, "/");
-                    strcat(filename, entry_code->d_name);
-                    fd = open(filename, O_RDONLY, 0644);
-                    dup2(fd, 0);
-                    break;
+            //int n = count_dat(dir2);
+                while ((entry_code = readdir(dir2)) != NULL)
+                {
+                    if(strstr(entry_code->d_name, ".dat") != NULL){
+                        strcpy(filename, getenv("PWD"));
+                        strcat(filename, "/");
+                        strcat(filename, directory_name);
+                        strcat(filename, "/");
+                        strcat(filename, entry_code->d_name);
+                        fd = open(filename, O_RDONLY, 0644);
+                        dup2(fd, 0);
+                        break;
+                    }
+                
+                chdir(strcat(getenv("PWD"), "/../.."));
+                puts(cmd[0]);
+                if(fork() == 0){
+                    if(execvp(cmd[0], cmd) < 0){
+                        err(1, NULL);
+                    }
+                    return EXIT_SUCCESS;
                 }
-            }
-             
-            chdir(strcat(getenv("PWD"), "/../.."));
-            puts(cmd[0]);
-            if(execvp(cmd[0], cmd) < 0){
-                err(1, NULL);
-            }
-            return EXIT_SUCCESS;
-            close(fd);
-
+                }
+                /*char ch;
+                char * buf = NULL;
+                int i = 0;
+                while(read(1, ch, 1)){
+                    buf = (char *)realloc(buf, (i + 1) * sizeof(char));
+                    buf[i] = ch;
+                }
+                chdir(strcat(getenv("PWD"), "/../")*/
+                close(fd);
+                return EXIT_SUCCESS;
         }
-
         wait(NULL);
     }
     return 0;
