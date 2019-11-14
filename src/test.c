@@ -41,8 +41,10 @@ int main(int argc, char ** argv){
     char * right_way = NULL;
     char * directory_name = malloc(sizeof(char) * 2);
     directory_name[1] = '\0';
-    int fd;
-    char * filename = (char *)(malloc(sizeof(char) * 4096));
+    int fd_in;
+    //int fd_out;
+    char * filename_in = (char *)(malloc(sizeof(char) * 4096));
+    //char * filename_out = (char *)(malloc(sizeof(char) * 4096));
     while((entry_tmp = readdir(dir1)) != NULL){
         right_way = GetRightWay(entry_tmp->d_name);
         char * cmd[3] = {right_way, right_way, NULL};
@@ -61,18 +63,17 @@ int main(int argc, char ** argv){
                 while ((entry_code = readdir(dir2)) != NULL)
                 {
                     if(strcmp(entry_code->d_name, test_name) == 0){
-                        strcpy(filename, getenv("PWD"));
-                        strcat(filename, "/");
-                        strcat(filename, directory_name);
-                        strcat(filename, "/");
-                        strcat(filename, test_name);
-                        fd = open(filename, O_RDONLY, 0644);
-                        dup2(fd, 0);
+                        strcpy(filename_in, getenv("PWD"));
+                        strcat(filename_in, "/");
+                        strcat(filename_in, directory_name);
+                        strcat(filename_in, "/");
+                        strcat(filename_in, test_name);
+                        fd_in = open(filename_in, O_RDONLY, 0644);
+                        dup2(fd_in, 0);
                         break;
                     }
                 }
 
-                chdir(strcat(getenv("PWD"), "/../.."));
                 if(fork() == 0){
                     if(execvp(cmd[0], cmd) < 0){
                         err(1, NULL);
@@ -82,15 +83,43 @@ int main(int argc, char ** argv){
                 
                 /*char ch;
                 char * buf = NULL;
-                int i = 0;
-                while(read(1, ch, 1)){
-                    buf = (char *)realloc(buf, (i + 1) * sizeof(char));
-                    buf[i] = ch;
-                }*/
-                //chdir(strcat(getenv("PWD"), "/../"));
-                close(fd);
+                int j = 0;
+                while(read(1, &ch, 1)){
+                    buf = (char *)realloc(buf, (j + 1) * sizeof(char));
+                    buf[j] = ch;
+                    j++;
+                }
+                sprintf(test_name, "00%d.ans", i);
+                while ((entry_code = readdir(dir2)) != NULL)
+                {
+                    if(strcmp(entry_code->d_name, test_name) == 0){
+                        strcpy(filename_out, getenv("PWD"));
+                        strcat(filename_out, "/");
+                        strcat(filename_out, directory_name);
+                        strcat(filename_out, "/");
+                        strcat(filename_out, test_name);
+                        fd_out = open(filename_out, O_RDONLY, 0644);
+                    }
+                }
+                char * test = NULL;
+                j = 0;
+                while(read(fd_out, &ch, 1)){
+                    test = (char *)(realloc(test, (j + 1) * sizeof(char)));
+                    test[j] = ch;
+                    j++;
+                }
+
+                if(strcmp(buf, test) == 0){
+                    printf("+");   
+                }
+                else{
+                    printf("-");
+                }
+                close(fd_out);*/
+                close(fd_in);
                 
             }
+                chdir(strcat(getenv("PWD"), "/../.."));
                 closedir(dir2);
                 return EXIT_SUCCESS;
         }
