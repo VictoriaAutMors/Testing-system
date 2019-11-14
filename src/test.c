@@ -50,41 +50,52 @@ int main(int argc, char ** argv){
             chdir(strcat(getenv("PWD"), "/contest/tests"));
             directory_name[0] = entry_tmp->d_name[0];
             dir2 = opendir(directory_name);
-            //int n = count_dat(dir2);
+            int n = count_dat(dir2);
+            char * test_name = malloc(8 * sizeof(char));
+            if(n == 0){
+                return EXIT_SUCCESS;
+            }
+            for(int i = 1; i <= n; i++){
+                sprintf(test_name, "00%d.dat", i);
+                strcat(test_name, "\0");
                 while ((entry_code = readdir(dir2)) != NULL)
                 {
-                    if(strstr(entry_code->d_name, ".dat") != NULL){
+                    if(strcmp(entry_code->d_name, test_name) == 0){
                         strcpy(filename, getenv("PWD"));
                         strcat(filename, "/");
                         strcat(filename, directory_name);
                         strcat(filename, "/");
-                        strcat(filename, entry_code->d_name);
+                        strcat(filename, test_name);
                         fd = open(filename, O_RDONLY, 0644);
                         dup2(fd, 0);
                         break;
                     }
-                
+                }
+
                 chdir(strcat(getenv("PWD"), "/../.."));
-                puts(cmd[0]);
                 if(fork() == 0){
                     if(execvp(cmd[0], cmd) < 0){
                         err(1, NULL);
                     }
                     return EXIT_SUCCESS;
                 }
-                }
+                
                 /*char ch;
                 char * buf = NULL;
                 int i = 0;
                 while(read(1, ch, 1)){
                     buf = (char *)realloc(buf, (i + 1) * sizeof(char));
                     buf[i] = ch;
-                }
-                chdir(strcat(getenv("PWD"), "/../")*/
+                }*/
+                //chdir(strcat(getenv("PWD"), "/../"));
                 close(fd);
+                
+            }
+                closedir(dir2);
                 return EXIT_SUCCESS;
         }
         wait(NULL);
     }
+    closedir(dir1);
     return 0;
 }
