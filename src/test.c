@@ -12,6 +12,8 @@
 #include <sys/wait.h>
 #include <math.h>
 
+int genc = 10;
+
 char * GetRightWay(char * name){
     char * right_way = (char *)malloc(4096 * sizeof(char));
     strcpy(right_way, getenv("PWD"));
@@ -32,23 +34,69 @@ int count_dat(DIR * dir){
     return i; 
 }
 
-int main(int argc, char ** argv){
-    chdir(strcat(getenv("PWD"), "/.."));
-    struct dirent *entry_tmp;
-    struct dirent *entry_code;
-    DIR * dir1 = opendir("tmp");
-    DIR * dir2;
-    char * right_way = NULL;
+void ch_dir(char *dir)
+{
+    if (chdir(dir) < 0) {
+        err(1, NULL);
+    }
+}
+
+DIR *open_dir(char *dir)
+{
+    DIR *tmp = opendir(dir);
+    if (tmp == NULL) {
+        err(1, NULL);
+    }
+    return tmp;
+}
+
+DIR *opentest(void)
+{
+    ch_dir("contest");
+    return open_dir("tests");
+}
+
+struct dirent *ctest(char *name)
+{
+    struct dirent *ctest;
+    while (ctest = readdir("tests") != NULL) {
+        if (strcmp(ctest -> d_name, name) == 0) {
+            return ctest;
+        }
+    }
+    return NULL;
+}
+
+int main(void)
+{
+    struct dirent *entry_bin, *entry_tests, *entry_test;
+    DIR *dir_bin, *dir_tests;
+    pid_t pid;
+    ssize_t fd;
+    int count = 0;
     char * directory_name = malloc(sizeof(char) * 2);
     directory_name[1] = '\0';
     int fd_in;
-    //int fd_out;
     char * filename_in = (char *)(malloc(sizeof(char) * 4096));
-    //char * filename_out = (char *)(malloc(sizeof(char) * 4096));
-    while((entry_tmp = readdir(dir1)) != NULL){
+    ch_dir("..");
+    dir_bin = open_dir("tmp");
+    dir_tests = opentest();
+    while((entry_bin = readdir(dir_bin)) != NULL){
         right_way = GetRightWay(entry_tmp->d_name);
         char * cmd[3] = {right_way, right_way, NULL};
-        if(fork() == 0){
+        if((pid = fork()) == 0) {
+            entry_test = ctest(entry_bin -> d_name);
+            if (entry_test == NULL) {
+                putchar("-");
+                return EXIT_SUCCESS;
+            }
+            for (int i = 1; i <= genc; i++) {
+                sprintf(test_name, "00%d.dat", i);
+                fd = open(test_name, O_RDONLY);
+                if (fd < 0) {
+                    err(1, NULL);
+                }
+                dup2(STDIN_FILENO, fd);
             chdir(strcat(getenv("PWD"), "/contest/tests"));
             directory_name[0] = entry_tmp->d_name[0];
             dir2 = opendir(directory_name);
