@@ -67,37 +67,75 @@ struct dirent *ctest(char *name)
     return NULL;
 }
 
+void write_result(char *name, char *result)
+{
+    ssize_t fd = open("results.txt", O_WRONLY | O_CREAT, 0755);
+    if (fd < 0) {
+        err(1, NULL);
+    }
+    if (!write(fd, name, strlen(name))) {
+        err(1, NULL);
+    }
+    if (!write(fd, result, strlen(result))) {
+        err(1, NULL);
+    }
+    if (!write(fd, "\n", 1) {
+        err(1, NULL);
+    }
+    close(fd);
+}
+
+char *prepare_exec(char *name)
+{
+    char *exec = (char *)malloc(4 * sizeof(char));
+    strcpy(exec, "./");
+    strcat(exec, name);
+    ch_dir("..");
+    ch_dir("..");
+    ch_dir("tmp");
+    return exec;
+}
+
 int main(void)
 {
     struct dirent *entry_bin, *entry_tests, *entry_test;
     DIR *dir_bin, *dir_tests;
     pid_t pid;
     ssize_t fd;
-    int count = 0;
-    char * directory_name = malloc(sizeof(char) * 2);
-    directory_name[1] = '\0';
-    int fd_in;
-    char * filename_in = (char *)(malloc(sizeof(char) * 4096));
+    char test_name[8];
     ch_dir("..");
     dir_bin = open_dir("tmp");
     dir_tests = opentest();
     while((entry_bin = readdir(dir_bin)) != NULL){
-        right_way = GetRightWay(entry_tmp->d_name);
-        char * cmd[3] = {right_way, right_way, NULL};
         if((pid = fork()) == 0) {
-            entry_test = ctest(entry_bin -> d_name);
-            if (entry_test == NULL) {
-                putchar("-");
+            entry_tests = ctest(entry_bin -> d_name);
+            if (entry_tests == NULL) {
+                ch_dir("..");
+                ch_dir("..");
+                ch_dir("tmp");
+                write_result("-");
                 return EXIT_SUCCESS;
             }
             for (int i = 1; i <= genc; i++) {
-                sprintf(test_name, "00%d.dat", i);
+                ch_dir(entry_bin -> d_name);
+                sprintf(test_name, "03%d.dat", i);
                 fd = open(test_name, O_RDONLY);
                 if (fd < 0) {
                     err(1, NULL);
                 }
                 dup2(STDIN_FILENO, fd);
-            chdir(strcat(getenv("PWD"), "/contest/tests"));
+                if (fork() == 0) {
+                    char *exec = prepare_exec(entry_bin -> d_name);
+                    ssize_t fdd = open("anss", O_WRONLY | O_CREAT | O_TRUNC, 0755)
+                    dup2(STDOUT_FILENO, fdd);
+                    if (execlp(exec, exec, NULL) < 0) {
+                        write_result(entry_bin - > d_name, "-");
+                        close fdd;
+                        return EXIT_FAILURE;
+                    }
+                    return EXIT_SUCCESS;
+                }
+                wait()
             directory_name[0] = entry_tmp->d_name[0];
             dir2 = opendir(directory_name);
             int n = count_dat(dir2);
@@ -105,23 +143,6 @@ int main(void)
             if(n == 0){
                 return EXIT_SUCCESS;
             }
-            for(int i = 1; i <= n; i++){
-                sprintf(test_name, "00%d.dat", i);
-                strcat(test_name, "\0");
-                while ((entry_code = readdir(dir2)) != NULL)
-                {
-                    if(strcmp(entry_code->d_name, test_name) == 0){
-                        strcpy(filename_in, getenv("PWD"));
-                        strcat(filename_in, "/");
-                        strcat(filename_in, directory_name);
-                        strcat(filename_in, "/");
-                        strcat(filename_in, test_name);
-                        fd_in = open(filename_in, O_RDONLY, 0644);
-                        dup2(fd_in, 0);
-                        break;
-                    }
-                }
-
                 if(fork() == 0){
                     if(execvp(cmd[0], cmd) < 0){
                         err(1, NULL);
