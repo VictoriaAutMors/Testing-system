@@ -110,13 +110,15 @@ char *fill_from_fd(ssize_t fd)
     int i = 0;
     char ch, *buff = NULL, *tmp = NULL;
     while (read(fd, &ch, 1)) {
-        buff[i] = ch;
-        i++;
+
         tmp = (char *)realloc(buff, (i + 1) * sizeof(char));
         if (tmp == NULL) {
             err(1, NULL);
         }
         buff = tmp;
+        buff[i] = ch;
+        i++;
+        
     }
     return buff;
 }
@@ -141,40 +143,59 @@ int main(void)
                 write_result(entry_bin->d_name, "-");
                 return EXIT_SUCCESS;
             }
+            ch_dir("tests");
             for (i = 1; i <= genc; i++) {
                 ch_dir(entry_bin -> d_name);
-                sprintf(test_name, "03%d.dat", i);
-                sprintf(ans_name, "03%d.ans", i);
+
+                sprintf(test_name, "%03d.dat", i);
+                sprintf(ans_name, "%03d.ans", i);
                 fd_data = fd_ropen(test_name);
                 fd_ans = fd_ropen(ans_name);
-                dup2(STDIN_FILENO, fd_data);
-                fd_tmp = open("answer", O_WRONLY | O_CREAT | O_TRUNC, 0755);
+                //dup2(STDIN_FILENO, fd_data);
+                fd_tmp = open("answer", O_WRONLY | O_CREAT, 0755);
                 if (fork() == 0) {
                     char *exec = prepare_exec(entry_bin -> d_name);
-                    dup2(STDOUT_FILENO, fd_tmp);
+                    //dup2(STDOUT_FILENO, fd_tmp);
+
                     if (execlp(exec, exec, NULL) < 0) {
                         write_result(entry_bin -> d_name, "-");
                         close(fd_tmp);
                         return EXIT_FAILURE;
                     }
+                    char * time_buf = NULL;
+                    char ch1;
+                    int r = 0;
+                    while (read(fd_data, &ch1, 1))
+                    {
+                       time_buf = (char *)realloc(time_buf, sizeof(char) * (r + 1));
+                       time_buf[r] = ch1;
+                       r++;
+                    }
+                    puts(time_buf);
+                    for(int k = 0; k < strlen(time_buf); k++){
+                        read(fd_data, STDIN_FILENO, 1);
+                    }
+
+
                     return EXIT_SUCCESS;
                 }
                 wait(NULL);
-                buff_test = fill_from_fd(fd_tmp);
+                /*buff_test = fill_from_fd(fd_tmp);
                 close(fd_tmp);
                 buff_answer = fill_from_fd(fd_ans);
                 close(fd_ans);
                 if(strstr(buff_test, buff_answer) != 0){
                     flag = 1;
                     break;
-                }
+                }*/
+                ch_dir("..");
             }
-            if (flag) {
+            /*if (flag) {
                 write_result(entry_bin -> d_name, "-");
             }
             else {
                 write_result(entry_bin -> d_name, "+");
-            }
+            }*/
             return EXIT_SUCCESS;
         }
         wait(NULL);

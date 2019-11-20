@@ -98,6 +98,7 @@ int main(void){
     get_cwd(code_dir);
     while ((pcat = readdir(pdir)) != NULL) {
         cdir = open_dir(pcat -> d_name);
+        puts(pcat->d_name);
         while ((ccat = readdir(cdir)) != NULL) {
             if (strstr(ccat -> d_name, ".c") != NULL) {
                 cmpl_path = get_cmpl_path(code_dir, pcat -> d_name, ccat -> d_name);
@@ -111,6 +112,17 @@ int main(void){
                 free(exec_path);
             }
         }
+        change_dir("/../..");
+        change_dir("/src");
+        if(fork() == 0){
+            char * cmd[3] = {"shell", "shell", NULL};
+            execvp(cmd[0], cmd);
+            wait(NULL);
+            return EXIT_SUCCESS;
+        }
+        wait(NULL);
+        change_dir("/..");
+        change_dir("/contest/code");
         closedir(cdir);
     }
     closedir(pdir);
