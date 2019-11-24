@@ -114,12 +114,14 @@ int main(void){
         }
         change_dir("/../..");
         change_dir("/src");
-        if(fork() == 0){
-            char * cmd[3] = {"shell", "shell", NULL};
+        /*if(fork() == 0){
+            char * pwd = getenv("PWD");
+            strcat(pwd, "/test");
+            char * cmd[2] = {pwd, NULL};
             execvp(cmd[0], cmd);
             wait(NULL);
             return EXIT_SUCCESS;
-        }
+        }*/
         wait(NULL);
         change_dir("/..");
         change_dir("/contest/code");
