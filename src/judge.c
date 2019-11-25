@@ -77,11 +77,12 @@ void get_cwd(char *wd)
 
 /* other */
 
-void compile(char *cmpl_path, char *exec_path)
+void compile(char *cmpl_path, char *exec_path, char *name)
 {
-    char *cmd[8] = {"gcc", cmpl_path, "-o", exec_path, "-Wall", "-Werror", "-lm", NULL};
+    char *cmd[9] = {"gcc", cmpl_path, "-o", exec_path, "-Wall", "-Werror", 
+                    "-lm", "-fsanitize=leak,address,null,undefined", NULL};
     if (execvp(cmd[0], cmd) < 0) {
-        err(1, NULL);
+        printf("%s - ", name);
     }
 }
 
@@ -96,15 +97,15 @@ int main(void){
     pdir = open_dir("code");
     change_dir("/code");
     get_cwd(code_dir);
-    while ((pcat = readdir(pdir)) != NULL) {
+    while ((pcat = readdir(pdir)) != NULL && strstr(pcat -> d_name, ".") == NULL) {
         cdir = open_dir(pcat -> d_name);
-        puts(pcat->d_name);
+        puts(pcat -> d_name);
         while ((ccat = readdir(cdir)) != NULL) {
             if (strstr(ccat -> d_name, ".c") != NULL) {
                 cmpl_path = get_cmpl_path(code_dir, pcat -> d_name, ccat -> d_name);
                 exec_path = get_exec_path(src_dir, ccat -> d_name);
                 if ((pid = fork()) == 0) {
-                    compile(cmpl_path, exec_path);
+                    compile(cmpl_path, exec_path, ccat -> d_name);
                     return EXIT_SUCCESS;
                 }
                 wait(NULL);
@@ -112,17 +113,16 @@ int main(void){
                 free(exec_path);
             }
         }
-        change_dir("/../..");
-        change_dir("/src");
-        /*if(fork() == 0){
-            char * pwd = getenv("PWD");
-            strcat(pwd, "/test");
-            char * cmd[2] = {pwd, NULL};
-            execvp(cmd[0], cmd);
-            wait(NULL);
-            return EXIT_SUCCESS;
-        }*/
         wait(NULL);
+        change_dir("/../..");
+        change_dir("/sources");
+        if ((pid = fork()) == 0) {
+            if (execl("./test", "./test", NULL) < 0) {
+                err(1, "test");
+            }
+        }
+        wait(NULL);
+        putchar('\n');
         change_dir("/..");
         change_dir("/contest/code");
         closedir(cdir);
