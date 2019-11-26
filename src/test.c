@@ -11,11 +11,12 @@
 #include <limits.h>
 #include <sys/wait.h>
 #include <stdarg.h>
+#include <time.h>
 
 #define TRUE 1
 #define FALSE 0
 
-int genc = 3;
+pid_t child;
 
 void ch_dir(char *dir)
 {
@@ -163,19 +164,23 @@ int get_count(char *name)
     exit(1);
 }
 
+void handler(void)
+{
+    kill(child, SIGKILL);
+}
+
 int main(void)
 {
     struct dirent *entry_bin;
     DIR *dir_bin;
-    pid_t pid, status;
+    int status;
     ssize_t fd_data, fd_tmp, fd_ans;
     char test_name[8], ans_name[8];
-    int i, tasks, right_tasks = 0, test_count = 0, flag = 0;
+    int i, test_count = 0, flag = 0;
+    signal(SIGALRM, (void (*)(int))handler);
     ch_dir("..");
     dir_bin = open_dir("tmp");
     ch_dir("contest");
-    tasks = get_count("tasks");
-    right_tasks = tasks;
     while((entry_bin = readdir(dir_bin)) != NULL){
         if(strcmp(entry_bin -> d_name, "answer") && fork() == 0) {
             if (is_test_legit(entry_bin -> d_name) == FALSE) {
@@ -194,9 +199,10 @@ int main(void)
                 dup2(fd_data, STDIN_FILENO);
                 ch_dir("../../../tmp");
                 fd_tmp = open("answer", O_RDWR | O_CREAT | O_TRUNC, 0755);
-                if ((pid = fork()) == 0) {
+                if ((child = fork()) == 0) {
                     char *exec = prepare_exec(entry_bin -> d_name);
                     dup2(fd_tmp, STDOUT_FILENO);
+                    alarm(5);
                     if (execl(exec, exec, NULL) < 0) {
                         printf("%s- failed on task %d; ", entry_bin -> d_name, i);
                         close_fd(fd_tmp);
@@ -205,7 +211,8 @@ int main(void)
                     closedir(dir_bin);
                     return EXIT_SUCCESS;
                 }
-                waitpid(pid, &status, 0);
+                waitpid(child, &status, 0);
+                alarm(0);
                 if (WEXITSTATUS(status) != 0 || cmp_files(fd_ans, fd_tmp)) {
                     close_fd(fd_tmp, fd_data, fd_ans);
                     flag = 1;
@@ -215,7 +222,6 @@ int main(void)
                 ch_dir("../contest/");
             }
             flag = write_result(flag, entry_bin -> d_name, i);
-
             closedir(dir_bin);
             return EXIT_SUCCESS;
         }
