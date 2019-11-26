@@ -8,7 +8,7 @@
 
 In system testing, integration testing passed components are taken as input. The goal of integration testing is to detect any irregularity between the units that are integrated together. System testing detects defects within both the integrated units and the whole system. The result of system testing is the observed behavior of a component or a system when it is tested 
 
-Result of testing will be written in terminal. </p>
+Result of checking will be written in terminal. </p>
   <h2> Testing system supports:</h2>
   <ol>
   <li> checking n-tests </li>
