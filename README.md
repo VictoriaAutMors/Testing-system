@@ -4,9 +4,7 @@
 <h1> Testing-system </h1>
 </head>
 <body>
-  <h2> Testing system </h2>
-  <p> 
-Testing System is a type of software testing that is performed on a complete integrated system to evaluate the compliance of the system with the corresponding requirements.
+<p> Testing System is a type of software testing that is performed on a complete integrated system to evaluate the compliance of the system with the corresponding requirements.
 
 In system testing, integration testing passed components are taken as input. The goal of integration testing is to detect any irregularity between the units that are integrated together. System testing detects defects within both the integrated units and the whole system. The result of system testing is the observed behavior of a component or a system when it is tested 
 
