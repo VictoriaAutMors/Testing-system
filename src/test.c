@@ -81,7 +81,7 @@ void close_fd(int fd1, ...)
     va_end(fd);
 }
 
-int cmp_files(ssize_t fd1, ssize_t fd2)
+int cmp_byte(ssize_t fd1, ssize_t fd2)
 {
     char ch1, ch2;
     lseek(fd2, 0, SEEK_SET);
@@ -94,6 +94,24 @@ int cmp_files(ssize_t fd1, ssize_t fd2)
         }
     }
     if (read(fd2, &ch2, 1) > 0) {
+        return 1;
+    }
+    return 0;
+}
+
+int cmp_int(ssize_t fd1, ssize_t fd2){
+    int num1, num2;
+    lseek(fd2, 0, SEEK_SET);
+    dup2(0, fd2);
+    while(scanf("%d", &num1) > 0){
+        if(scanf("%d", &num2) < 0){
+            return 1;
+        }
+        if(num1 != num2){
+            return 1;
+        }
+    }
+    if(scanf("%d", &num2) > 0){
         return 1;
     }
     return 0;
@@ -169,6 +187,28 @@ void handler(void)
     kill(child, SIGKILL);
 }
 
+int how_to_check(){
+    ssize_t fd = open("checker.cfg", O_RDONLY, 0644);
+    char ch;
+    char * buf = NULL; 
+    int i = 0;
+    while(read(fd, &ch, 1) > 0){
+        buf = realloc(buf, (i + 1) * sizeof(char));
+        buf[i] = ch;
+        i++;
+    }
+    if(buf[10] == 'i'){
+        free(buf);
+        return 1;
+    }
+    if(buf[10] == 'b'){
+        free(buf);
+        return 0;
+    }
+    free(buf);
+    return 2;
+}
+
 int main(void)
 {
     struct dirent *entry_bin;
@@ -213,10 +253,27 @@ int main(void)
                 }
                 waitpid(child, &status, 0);
                 alarm(0);
-                if (WEXITSTATUS(status) != 0 || cmp_files(fd_ans, fd_tmp)) {
-                    close_fd(fd_tmp, fd_data, fd_ans);
-                    flag = 1;
-                    break;
+                ch_dir("../contest/tests");
+                ch_dir(entry_bin->d_name);
+                int check = how_to_check();
+                ch_dir("../../../tmp");
+                if(check == 0){
+                    if (WEXITSTATUS(status) != 0 || cmp_byte(fd_ans, fd_tmp)) {
+                        close_fd(fd_tmp, fd_data, fd_ans);
+                        flag = 1;
+                        break;
+                    }
+                }
+                if(check == 1){
+                    if(WEXITSTATUS(status) != 0 || cmp_int(fd_ans, fd_tmp)){
+                        close_fd(fd_tmp, fd_data, fd_ans);
+                        flag = 1;
+                        break;
+                    }
+                }
+                if(check == 2){
+                    puts("checker error!");
+                    return 1;
                 }
                 close_fd(fd_tmp, fd_data, fd_ans);
                 ch_dir("../contest/");
