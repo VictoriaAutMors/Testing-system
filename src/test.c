@@ -209,6 +209,20 @@ int how_to_check(){
     return 2;
 }
 
+void logger(char * error){
+    if(fork() == 0){
+        ssize_t fd = open("logger.txt", O_WRONLY | O_CREAT, 0777);
+        time_t t = time(NULL);
+        struct tm tm = *localtime(&t);
+        dup2(0, fd);
+        printf("[%d-%d-%d][%d:%d:%d]", 
+                tm.tm_year + 1900, tm.tm_mon + 1,tm.tm_mday, 
+                tm.tm_hour, tm.tm_min, tm.tm_sec); 
+        puts(error);
+        close(fd);
+    }
+}
+
 int main(void)
 {
     struct dirent *entry_bin;
@@ -224,12 +238,18 @@ int main(void)
     while((entry_bin = readdir(dir_bin)) != NULL){
         if(strcmp(entry_bin -> d_name, "answer") && fork() == 0) {
             if (is_test_legit(entry_bin -> d_name) == FALSE) {
-                printf("%s- no test; ", entry_bin -> d_name);
+                char error[1024];
+                putchar('-');
+                sprintf(error, "%s- no test; ", entry_bin -> d_name);
+                ch_dir("../logger");
+            //    logger(error);
+                ch_dir("../contest");
                 closedir(dir_bin);
                 return EXIT_SUCCESS;
             }
             test_count = get_count(entry_bin -> d_name);
             for (i = 1; i <= test_count; i++) {
+                flag = 0;
                 ch_dir("tests");
                 ch_dir(entry_bin -> d_name);
                 sprintf(test_name, "%03d.dat", i);
@@ -244,7 +264,12 @@ int main(void)
                     dup2(fd_tmp, STDOUT_FILENO);
                     alarm(5);
                     if (execl(exec, exec, NULL) < 0) {
-                        printf("%s- failed on task %d; ", entry_bin -> d_name, i);
+                        putchar('-');
+                        char error[1024]; 
+                        sprintf(error, "%s- filed on task %d", entry_bin->d_name, i);
+                        ch_dir("../logger");
+             //           logger(error);
+                        ch_dir("../tmp");
                         close_fd(fd_tmp);
                         return EXIT_FAILURE;
                     }
@@ -272,17 +297,38 @@ int main(void)
                     }
                 }
                 if(check == 2){
-                    puts("checker error!");
+                    putchar('-');
+                    ch_dir("../logger");
+                    //logger("No information about checker. please make 'checker.cfg' file in task's directory and choose the current type of checker.");
+                    ch_dir("../tmp");
+                    close_fd(fd_tmp, fd_data, fd_ans);
                     return 1;
                 }
+                if(flag == 0){
+                    putchar('+');
+                }
+                if(flag == 1){
+                    putchar('-');
+                    char error[1024];
+                    ch_dir("../logger");
+                    sprintf(error, "%s:Wrong answer on test %d", entry_bin->d_name, i);
+
+                    //logger(error);
+                    ch_dir("../tmp");
+                    close_fd(fd_tmp, fd_data, fd_ans);
+                    return 1;
+                }
+
                 close_fd(fd_tmp, fd_data, fd_ans);
                 ch_dir("../contest/");
             }
-            flag = write_result(flag, entry_bin -> d_name, i);
+            //flag = write_result(flag, entry_bin -> d_name, i);
             closedir(dir_bin);
+            putchar('\n');
             return EXIT_SUCCESS;
         }
         wait(NULL);
+        putchar('\n');
     }
     closedir(dir_bin);
     return 0;
