@@ -21,7 +21,7 @@ pid_t child;
 void ch_dir(char *dir)
 {
     if (chdir(dir) < 0) {
-        err(1, dir, NULL);
+        err(1, dir, "change directory error");
     }
 }
 
@@ -29,7 +29,7 @@ DIR *open_dir(char *dir)
 {
     DIR *tmp = opendir(dir);
     if (tmp == NULL) {
-        err(1, NULL);
+        err(1, "open directory error");
     }
     return tmp;
 }
@@ -55,9 +55,9 @@ char *prepare_exec(char *name)
     char *exec = (char *)malloc(4 * sizeof(char));
     strcpy(exec, name);
     if (getcwd(path, PATH_MAX) == NULL) {
-        err(1, NULL);
+        err(1, "getcwd error");
     }
-    setenv("PWD", path, 1);
+    setenv("PWD", path, TRUE);
     return exec;
 }
 
@@ -102,12 +102,12 @@ int cmp_byte(ssize_t fd1, ssize_t fd2)
 int cmp_int(ssize_t fd1, ssize_t fd2){
     int num1, num2;
     lseek(fd2, 0, SEEK_SET);
-    dup2(0, fd2);
-    while(scanf("%d", &num1) > 0){
-        if(scanf("%d", &num2) < 0){
+    dup2(STDIN_FILENO, fd2);
+    while (scanf("%d", &num1) > 0) {
+        if (scanf("%d", &num2) < 0) {
             return 1;
         }
-        if(num1 != num2){
+        if (num1 != num2){
             return 1;
         }
     }
@@ -190,18 +190,18 @@ void handler(void)
 int how_to_check(){
     ssize_t fd = open("checker.cfg", O_RDONLY, 0644);
     char ch;
-    char * buf = NULL; 
+    char *buf = NULL;
     int i = 0;
-    while(read(fd, &ch, 1) > 0){
-        buf = realloc(buf, (i + 1) * sizeof(char));
+    while (read(fd, &ch, 1) > 0) {
+        buf = (char *)realloc(buf, (i + 1) * sizeof(char));
         buf[i] = ch;
         i++;
     }
-    if(buf[10] == 'i'){
+    if (buf[i - 1] == 'i') {
         free(buf);
         return 1;
     }
-    if(buf[10] == 'b'){
+    if (buf[i - 1] == 'b') {
         free(buf);
         return 0;
     }
@@ -210,17 +210,20 @@ int how_to_check(){
 }
 
 void logger(char * error){
-    if(fork() == 0){
-        ssize_t fd = open("logger.txt", O_WRONLY | O_CREAT, 0777);
-        time_t t = time(NULL);
-        struct tm tm = *localtime(&t);
+    if (fork() == 0) {
+        ssize_t fd = open("logger.txt", O_WRONLY | O_CREAT, 0755);
+        time_t rawtime;
+        struct tm *timeinfo;
+        if (time(&rawtime) < 0) {
+            err(1, "get time error");
+        }
+        timeinfo = localtime(&rawtime);
         dup2(0, fd);
-        printf("[%d-%d-%d][%d:%d:%d]", 
-                tm.tm_year + 1900, tm.tm_mon + 1,tm.tm_mday, 
-                tm.tm_hour, tm.tm_min, tm.tm_sec); 
+        printf("%s ", asctime(timeinfo));
         puts(error);
         close(fd);
     }
+    wait(NULL);
 }
 
 int main(void)
@@ -229,7 +232,7 @@ int main(void)
     DIR *dir_bin;
     int status;
     ssize_t fd_data, fd_tmp, fd_ans;
-    char test_name[8], ans_name[8];
+    char test_name[8], ans_name[8], error[1024];
     int i, test_count = 0, flag = 0;
     signal(SIGALRM, (void (*)(int))handler);
     ch_dir("..");
@@ -238,7 +241,6 @@ int main(void)
     while((entry_bin = readdir(dir_bin)) != NULL){
         if(strcmp(entry_bin -> d_name, "answer") && fork() == 0) {
             if (is_test_legit(entry_bin -> d_name) == FALSE) {
-                char error[1024];
                 putchar('-');
                 sprintf(error, "%s- no test; ", entry_bin -> d_name);
                 ch_dir("../logger");
@@ -265,7 +267,6 @@ int main(void)
                     alarm(5);
                     if (execl(exec, exec, NULL) < 0) {
                         putchar('-');
-                        char error[1024]; 
                         sprintf(error, "%s- filed on task %d", entry_bin->d_name, i);
                         ch_dir("../logger");
              //           logger(error);
@@ -304,7 +305,7 @@ int main(void)
                     close_fd(fd_tmp, fd_data, fd_ans);
                     return 1;
                 }
-                if(flag == 0){
+                if (flag == 0) {
                     putchar('+');
                 }
                 if(flag == 1){
@@ -312,13 +313,11 @@ int main(void)
                     char error[1024];
                     ch_dir("../logger");
                     sprintf(error, "%s:Wrong answer on test %d", entry_bin->d_name, i);
-
                     //logger(error);
                     ch_dir("../tmp");
                     close_fd(fd_tmp, fd_data, fd_ans);
                     return 1;
                 }
-
                 close_fd(fd_tmp, fd_data, fd_ans);
                 ch_dir("../contest/");
             }
