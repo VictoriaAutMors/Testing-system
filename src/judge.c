@@ -94,6 +94,9 @@ int print_header(){
     int num;
     printf("                    ");
     fd = open("global.cfg", O_RDONLY, 0777);
+    while(ch != '='){
+        read(fd, &ch, 1);
+    }
     while(read(fd, &ch, 1) > 0){
         if (ch == '='){
             count_of_tasks++;
@@ -111,10 +114,13 @@ int * how_much_test(int * count_of_tests){
     char ch, ch1;
     int j = 0;
     int fd = open("global.cfg", O_RDONLY, 0777);
+    while(ch != '='){
+        read(fd, &ch, 1);
+    }
     while(read(fd, &ch, 1) > 0){
         if(ch1 == '='){
             count_of_tests[j] = atoi(&ch);
-            j++;
+            j++;    
         }
         ch1 = ch;
     }
@@ -160,11 +166,12 @@ int main(void){
         int fd[2];
         pipe(fd);
         printf("%s", pcat->d_name);
-        for(int i = 0; i < 20 - sizeof(pcat->d_name)/sizeof(pcat->d_name[0]); i++){
+        int length = strlen(pcat->d_name);
+        for(int i = 0; i < 20 - length; i++){
             printf(" ");
         }
         if ((pid = fork()) == 0) {
-            dup2(fd[0], 1);
+            dup2(1, fd[0]);
             if (execl("./test", "./test", NULL) < 0) {
                 err(1, "test");
             }
