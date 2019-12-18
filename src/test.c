@@ -13,10 +13,19 @@
 #include <stdarg.h>
 #include <time.h>
 
-#define TRUE 1
-#define FALSE 0
-
 pid_t child;
+
+enum return_value {
+    FALSE,
+    TRUE,
+    ERR,
+    COUNT,
+    CHECK_TYPE,
+    INT = -4,
+    CHAR = -1
+};
+
+/* functions that work with directories */
 
 void ch_dir(char *dir)
 {
@@ -49,6 +58,25 @@ int is_test_legit(char *name)
     return FALSE;
 }
 
+void write_in_log(char *error) {
+    FILE *fl = fopen("log.txt", "a");
+    time_t rawtime;
+    struct tm *timeinfo;
+    if (time(&rawtime) < 0) {
+        err(1, "get time error");
+    }
+    timeinfo = localtime(&rawtime);
+    fprintf(fl, "%s %s\n", asctime(timeinfo), error);
+    fclose(fl);
+}
+
+void logger(char *string, char *path) {
+    ch_dir("../log");
+    write_in_log(string);
+    ch_dir("..");
+    ch_dir(path);
+}
+
 char *prepare_exec(char *name)
 {
     char path[PATH_MAX];
@@ -61,11 +89,10 @@ char *prepare_exec(char *name)
     return exec;
 }
 
-ssize_t fd_ropen(char *name)
-{
-    ssize_t fd = open(name, O_RDONLY);
+ssize_t fd_open(char *name) {
+    ssize_t fd = open(name, O_RDWR | O_CREAT, 0755);
     if (fd < 0) {
-        err(1, name, NULL);
+        err(ERR, "failed to open file");
     }
     return fd;
 }
@@ -81,55 +108,62 @@ void close_fd(int fd1, ...)
     va_end(fd);
 }
 
-int cmp_byte(ssize_t fd1, ssize_t fd2)
+FILE *fl_rfopen(char *name)
+{
+    FILE *fl = fopen(name, "r");
+    if (fl == NULL) {
+        err(1, name, NULL);
+    }
+    return fl;
+}
+
+void close_fl(FILE *fl1, ...)
+{
+    va_list fl;
+    FILE *i;
+    va_start(fl, fl1);
+    for (i = fl1; i != NULL; i = va_arg(fl, FILE *)) {
+        fclose(i);
+    }
+    va_end(fl);
+}
+
+int cmp_byte(FILE *fl1, FILE *fl2)
 {
     char ch1, ch2;
-    lseek(fd2, 0, SEEK_SET);
-    while (read(fd1, &ch1, 1) > 0) {
-        if (read(fd2, &ch2, 1) < 0) {
+    fseek(fl2, 0, SEEK_SET);
+    while ((ch1 = fgetc(fl1)) > 0) {
+        if ((ch2 = fgetc(fl2)) < 0) {
             return 1;
         }
         if (ch1 != ch2) {
             return 1;
         }
     }
-    if (read(fd2, &ch2, 1) > 0) {
+    if ((ch2 = fgetc(fl2) != EOF)) {
         return 1;
     }
     return 0;
 }
 
-int cmp_int(ssize_t fd1, ssize_t fd2){
+int cmp_int(FILE *fl1, FILE *fl2){
     int num1, num2;
-    lseek(fd2, 0, SEEK_SET);
-    dup2(STDIN_FILENO, fd2);
-    while (scanf("%d", &num1) > 0) {
-        if (scanf("%d", &num2) < 0) {
+    fseek(fl2, 0, SEEK_SET);
+    while (fscanf(fl1, "%d", &num1) > 0) {
+        if (fscanf(fl2, "%d", &num2) < 0) {
             return 1;
         }
         if (num1 != num2){
             return 1;
         }
     }
-    if(scanf("%d", &num2) > 0){
+    if(fscanf(fl2, "%d", &num2) > 0){
         return 1;
     }
     return 0;
 }
 
-int write_result(int flag, char *name, int number)
-{
-    if (!flag) {
-        printf("%s+; ", name);
-    } else {
-        printf("%s- failed on task %d; ", name, number);
-        flag = 0;
-    }
-    return flag;
-}
-
-char *read_line(FILE *fl)
-{
+char *read_line(FILE *fl) {
     int len = 0;
     char *line = (char *)malloc(LINE_MAX);
     if (line == NULL) {
@@ -144,8 +178,7 @@ char *read_line(FILE *fl)
     return line;
 }
 
-int get_num(char *line)
-{
+int get_num(char *line) {
     int num = 0, i = 0;
     do {
         if (line[i] >= '0' && line[i] <= '9') {
@@ -157,178 +190,145 @@ int get_num(char *line)
     return num;
 }
 
-int get_count(char *name)
-{
-    FILE *fl;
-    char *line, *tmp;
-    int num;
-    if (strstr(name, ".")) {
-        exit(0);
+int get_check_type(char *line) {
+    int i = 0, ans = 0;
+    char *error = NULL;
+    while(line[i] != ';') {
+        i++;
     }
-    fl = fopen("global.cfg", "r");
+    if (line[i - 1] == 'i') {
+        ans = INT;
+    } else if (line[i - 1] == 'b') {
+        ans = CHAR;
+    } else {
+        sprintf(error, "no information about check type");
+        logger(error, "contest");
+        exit(1);
+    }
+    return ans;
+}
+
+int get_info(char *file, char *name, int flag) {
+    FILE *fl = fopen(file, "r");
+    char *line, *tmp;
+    int ans;
     if (fl == NULL) {
-        err(1, "failed to open global.cfg");
+        sprintf(tmp, "failed to open %s ", file);
+        logger(tmp, "contest");
+        exit(1);
     }
     while ((line = read_line(fl)) != NULL) {
         tmp = strstr(line, name);
         if (tmp) {
-            num = get_num(tmp);
+            if (flag == COUNT) {
+                ans = get_num(tmp);
+            } else {
+                ans = get_check_type(tmp);
+            }
             free(line);
-            return num;
+            fclose(fl);
+            return ans;
         }
         free(line);
     }
-    printf("no informations about tests count for %s\n", name);
+    logger("failed to get information from config files", "contest");
+    fclose(fl);
     exit(1);
 }
 
-void handler(void)
-{
+void handler(void) {
+    putchar("-");
+    logger("program running for too long", "contest");
     kill(child, SIGKILL);
 }
 
-int how_to_check(){
-    ssize_t fd = open("checker.cfg", O_RDONLY, 0644);
-    char ch;
-    char *buf = NULL;
-    int i = 0;
-    while (read(fd, &ch, 1) > 0) {
-        buf = (char *)realloc(buf, (i + 1) * sizeof(char));
-        buf[i] = ch;
-        i++;
-    }
-    if (buf[i - 1] == 'i') {
-        free(buf);
+int check_files(int status, FILE *fl1, FILE *fl2, char *task_name) {
+    int check;
+    ch_dir("../contest/");
+    check = get_info("checker.cfg", task_name, CHECK_TYPE);
+    ch_dir("tests");
+    ch_dir(task_name);
+    ch_dir("../../../tmp");
+    if (WEXITSTATUS(status) != 0) {
         return 1;
     }
-    if (buf[i - 1] == 'b') {
-        free(buf);
-        return 0;
+    if(check == CHAR){
+        close_fl(fl1, fl2);
+        return cmp_byte(fl1, fl2);
     }
-    free(buf);
-    return 2;
+    close_fl(fl1, fl2);
+    return cmp_int(fl1, fl2);
 }
 
-void logger(char * error){
-    if (fork() == 0) {
-        ssize_t fd = open("logger.txt", O_WRONLY | O_CREAT, 0755);
-        time_t rawtime;
-        struct tm *timeinfo;
-        if (time(&rawtime) < 0) {
-            err(1, "get time error");
-        }
-        timeinfo = localtime(&rawtime);
-        dup2(0, fd);
-        printf("%s ", asctime(timeinfo));
-        puts(error);
-        close(fd);
-    }
-    wait(NULL);
-}
-
-int main(void)
-{
+int main(void) {
     struct dirent *entry_bin;
     DIR *dir_bin;
-    int status;
-    ssize_t fd_data, fd_tmp, fd_ans;
+    int status, i, test_count = 0, flag = 0;
+    FILE *fl_tmp, *fl_ans;
+    ssize_t fd_tmp, fd_data;
     char test_name[8], ans_name[8], error[1024];
-    int i, test_count = 0, flag = 0;
     signal(SIGALRM, (void (*)(int))handler);
     ch_dir("..");
     dir_bin = open_dir("tmp");
     ch_dir("contest");
-    while((entry_bin = readdir(dir_bin)) != NULL){
-        if(strcmp(entry_bin -> d_name, "answer") && fork() == 0) {
+    while((entry_bin = readdir(dir_bin)) != NULL) {
+        if(!strstr(entry_bin -> d_name, ".") && strcmp(entry_bin -> d_name,
+                                                    "answer") && fork() == 0) {
+            printf("%s ", entry_bin -> d_name);
             if (is_test_legit(entry_bin -> d_name) == FALSE) {
                 putchar('-');
                 sprintf(error, "%s- no test; ", entry_bin -> d_name);
-                ch_dir("../logger");
-            //    logger(error);
-                ch_dir("../contest");
-                closedir(dir_bin);
+                logger(error, "contest");
                 return EXIT_SUCCESS;
             }
-            test_count = get_count(entry_bin -> d_name);
+            printf("%d", flag);
+            test_count = get_info("global.cfg", entry_bin -> d_name, COUNT);
             for (i = 1; i <= test_count; i++) {
                 flag = 0;
                 ch_dir("tests");
                 ch_dir(entry_bin -> d_name);
                 sprintf(test_name, "%03d.dat", i);
                 sprintf(ans_name, "%03d.ans", i);
-                fd_data = fd_ropen(test_name);
-                fd_ans = fd_ropen(ans_name);
-                dup2(fd_data, STDIN_FILENO);
+                fd_data = fd_open(test_name);
+                fl_ans = fl_rfopen(ans_name);
                 ch_dir("../../../tmp");
-                fd_tmp = open("answer", O_RDWR | O_CREAT | O_TRUNC, 0755);
+                fd_tmp = fd_open("answer");
+                alarm(5);
                 if ((child = fork()) == 0) {
                     char *exec = prepare_exec(entry_bin -> d_name);
+                    dup2(fd_data, STDIN_FILENO);
                     dup2(fd_tmp, STDOUT_FILENO);
-                    alarm(5);
                     if (execl(exec, exec, NULL) < 0) {
                         putchar('-');
-                        sprintf(error, "%s- filed on task %d", entry_bin->d_name, i);
-                        ch_dir("../logger");
-             //           logger(error);
-                        ch_dir("../tmp");
-                        close_fd(fd_tmp);
-                        return EXIT_FAILURE;
+                        sprintf(error, "%s- failed on task %d", entry_bin -> d_name, i);
+                        logger(error, "tmp");
                     }
+                    close_fd(fd_tmp, fd_data);
                     closedir(dir_bin);
                     return EXIT_SUCCESS;
                 }
                 waitpid(child, &status, 0);
                 alarm(0);
-                ch_dir("../contest/tests");
-                ch_dir(entry_bin->d_name);
-                int check = how_to_check();
-                ch_dir("../../../tmp");
-                if(check == 0){
-                    if (WEXITSTATUS(status) != 0 || cmp_byte(fd_ans, fd_tmp)) {
-                        close_fd(fd_tmp, fd_data, fd_ans);
-                        flag = 1;
-                        break;
-                    }
-                }
-                if(check == 1){
-                    if(WEXITSTATUS(status) != 0 || cmp_int(fd_ans, fd_tmp)){
-                        close_fd(fd_tmp, fd_data, fd_ans);
-                        flag = 1;
-                        break;
-                    }
-                }
-                if(check == 2){
-                    putchar('-');
-                    ch_dir("../logger");
-                    //logger("No information about checker. please make 'checker.cfg' file in task's directory and choose the current type of checker.");
-                    ch_dir("../tmp");
-                    close_fd(fd_tmp, fd_data, fd_ans);
-                    return 1;
-                }
+                close_fd(fd_tmp, fd_data);
+                fl_tmp = fl_rfopen("answer");
+                flag = check_files(status, fl_ans, fl_tmp, entry_bin -> d_name);
                 if (flag == 0) {
                     putchar('+');
-                }
-                if(flag == 1){
+                } else {
                     putchar('-');
-                    char error[1024];
-                    ch_dir("../logger");
                     sprintf(error, "%s:Wrong answer on test %d", entry_bin->d_name, i);
-                    //logger(error);
-                    ch_dir("../tmp");
-                    close_fd(fd_tmp, fd_data, fd_ans);
+                    logger(error, "tmp");
+                    closedir(dir_bin);
                     return 1;
                 }
-                close_fd(fd_tmp, fd_data, fd_ans);
                 ch_dir("../contest/");
             }
-            //flag = write_result(flag, entry_bin -> d_name, i);
             closedir(dir_bin);
-            putchar('\n');
             return EXIT_SUCCESS;
         }
         wait(NULL);
         putchar('\n');
     }
     closedir(dir_bin);
-    return 0;
+    return EXIT_SUCCESS;
 }
