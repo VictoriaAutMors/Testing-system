@@ -11,30 +11,49 @@ In system testing, integration testing passed components are taken as input. The
 Result of checking will be written in terminal. </p>
   <h2> Testing system supports:</h2>
   <ol>
-  <li> checking n-tests </li>
-  <li> checking </li>
-  <li> new features will be available in Future(maybe) </li>
+  <li> checking multiple tests </li>
+  <li> custom time limit to complete task </li>
+  <li> two types of checkers: integer and byte </li>
+  <li> configs </li>
+  <li> logs </li>
   </ol>
   <h2> Prepare testing system </h2>
   <ol>
-  <li> open contest folder </li>
-  <il> put test folder with anwsers and tasks in tests </li>
+  <li> dowload archive with Testing System </li>
+  <il> unpack archive </li>
   <li> put contestants tests in code folder </li>
-  <li> fill global.cfg with data </li>
+  <li> put all tests in tests folder </li>
+  <li> fill global.cfg and checker.cfg with data </li>
   </ol>
   <h2> Prepare global.cfg </h2>
-  <p> all statements should end with ';' </p>
+  <p> Global.cfg contains information about time to complete the task, number of tests to check. All statements should end with ';' </p>
   <ol>
-  <li>  After "tasks=" - write number of assigments. E.g. tasks=10; </li>
-  <li>  After "tests:" - write Task name and count of tests. E.g. A=3; </li>
+  <li>  Write after "task_time =" - write number in seconds to set time to complete tasks. E.g. task_time = 10; </li>
+  <li>  Write after "task's test count:" - write Task name and count of tests. E.g. A = 3; </li>
   </ol>
+  <h2> Prepare checker.cfg </h2>
+  <p2> Checker.cfg contains information about type of checking.
+  Write after "check type:" - write Task name and type of checker. E.g. A = i; </p2>
+  <h2> logs </h2>
+  <p2>  a log file is a file that records either events that occur in software run.</p2>
+  <p2>
+  Logs contain result of checking, errors etc. In our case, messages are written to a single log file. </p2>
+  <h2> Prepare tests </h2>
+  <p2> In task folder create two types of files: .dat and .ans.
+  
+  .dat - task
+  
+  .ans - answer to task
+  </p2>
+  <h1> DISCLAIMER: Test's folder name and contestant's task name sould be the same to work properly </h1>
   <h2> How to compile and run program: </h2>
   <ol> 
-  <li> dowload archive with Testing System </li>
-  <li> download Makefile and put it in directory src </li>
-  <li> open terminal in src </li>
-  <li> run in terminal: make </li>
-  <li> run in terminal judge </li>
+  <li> open terminal in directory </li>
+  <li> run in terminal: make (it will save binary files in bin directory) </li>
+  <li> open terminal in bin </li>
+  <li> run in terminal: ./judge <li>
   </ol>
+  <h2> to clean tmp folder and binary files </h2>
+  <p2> run in terminal: make clean </p2>
 </body>
 </html>
