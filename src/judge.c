@@ -159,7 +159,7 @@ int main(void){
         change_dir("/src");
         int fd[2];
         pipe(fd);
-        printf(pcat->d_name);
+        printf("%s", pcat->d_name);
         for(int i = 0; i < 20 - sizeof(pcat->d_name)/sizeof(pcat->d_name[0]); i++){
             printf(" ");
         }
@@ -169,23 +169,45 @@ int main(void){
                 err(1, "test");
             }
         }
+        /* What I add*/
         int flag = 0;
         char ch;
-        for(int i = 0 ;i < count_of_tests[j]; i++){
-            read(fd[1], &ch, 1);
-            if(ch == '-'){
-                flag = 1;
-                break;
-            }
+        char * data_from_pipe = NULL;
+        int l = 0;
+        while(read(fd[1], &ch, 1) > 0){
+            data_from_pipe = (char *)realloc(data_from_pipe, sizeof(char) * (l + 1));
+            data_from_pipe[l] = ch;
+            l++;
         }
         close(fd[0]);
         close(fd[1]);
-        if(flag == 0){
-            printf("+");
+        char genererating_name;
+        for(int i = 0; i < count_of_tasks; i++){
+            genererating_name = 'A' + i;
+            int z = 0;
+            int flag = 0;
+            for(int k = 0; count_of_tests[j]; k++){
+                if(data_from_pipe[k] == genererating_name){
+                    z = k;
+                    flag = 1;
+                    break;
+                }
+            }
+            if (flag == 0){
+                printf("-");
+            }
+            else{
+                for(int k = 0; k < count_of_tests[j]; k++){
+                    if(data_from_pipe[z + k] == '-'){
+                        printf("-");
+                        break;
+                    }   
+                }
+                printf("+");
+            }
+            printf(" ");
         }
-        else{
-            printf("-");
-        }
+        /* What I add*/
         wait(NULL);
         putchar('\n');
         change_dir("/..");
