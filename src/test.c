@@ -117,17 +117,6 @@ FILE *fl_rfopen(char *name)
     return fl;
 }
 
-void close_fl(FILE *fl1, ...)
-{
-    va_list fl;
-    FILE *i;
-    va_start(fl, fl1);
-    for (i = fl1; i != NULL; i = va_arg(fl, FILE *)) {
-        fclose(i);
-    }
-    va_end(fl);
-}
-
 int cmp_byte(FILE *fl1, FILE *fl2)
 {
     char ch1, ch2;
@@ -210,7 +199,7 @@ int get_check_type(char *line) {
 
 int get_info(char *file, char *name, int flag) {
     FILE *fl = fopen(file, "r");
-    char *line, *tmp;
+    char *line, *tmp = NULL;
     int ans;
     if (fl == NULL) {
         sprintf(tmp, "failed to open %s ", file);
@@ -237,7 +226,7 @@ int get_info(char *file, char *name, int flag) {
 }
 
 void handler(void) {
-    putchar("-");
+    putchar('-');
     logger("program running for too long", "contest");
     kill(child, SIGKILL);
 }
@@ -253,10 +242,8 @@ int check_files(int status, FILE *fl1, FILE *fl2, char *task_name) {
         return 1;
     }
     if(check == CHAR){
-        close_fl(fl1, fl2);
         return cmp_byte(fl1, fl2);
     }
-    close_fl(fl1, fl2);
     return cmp_int(fl1, fl2);
 }
 
@@ -273,7 +260,7 @@ int main(void) {
     ch_dir("contest");
     while((entry_bin = readdir(dir_bin)) != NULL) {
         if(!strstr(entry_bin -> d_name, ".") && strcmp(entry_bin -> d_name,
-                                                    "answer") && fork() == 0) {
+                                                    "answer")) {
             printf("%s ", entry_bin -> d_name);
             if (is_test_legit(entry_bin -> d_name) == FALSE) {
                 putchar('-');
@@ -281,7 +268,6 @@ int main(void) {
                 logger(error, "contest");
                 return EXIT_SUCCESS;
             }
-            printf("%d", flag);
             test_count = get_info("global.cfg", entry_bin -> d_name, COUNT);
             for (i = 1; i <= test_count; i++) {
                 flag = 0;
@@ -292,7 +278,7 @@ int main(void) {
                 fd_data = fd_open(test_name);
                 fl_ans = fl_rfopen(ans_name);
                 ch_dir("../../../tmp");
-                fd_tmp = fd_open("answer");
+                fd_tmp = open("answer", O_RDWR | O_TRUNC | O_CREAT, 0755);
                 alarm(5);
                 if ((child = fork()) == 0) {
                     char *exec = prepare_exec(entry_bin -> d_name);
@@ -318,15 +304,12 @@ int main(void) {
                     putchar('-');
                     sprintf(error, "%s:Wrong answer on test %d", entry_bin->d_name, i);
                     logger(error, "tmp");
-                    closedir(dir_bin);
-                    return 1;
                 }
+                fclose(fl_ans);
+                fclose(fl_tmp);
                 ch_dir("../contest/");
             }
-            closedir(dir_bin);
-            return EXIT_SUCCESS;
         }
-        wait(NULL);
         putchar('\n');
     }
     closedir(dir_bin);
