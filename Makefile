@@ -1,5 +1,9 @@
-all: ./src/test.c
-	gcc ./src/test.c -o ./bin/test -Wall -Werror -Wextra -O2
-	gcc ./src/judge.c -o ./bin/judge -Wall -Werror -Wextra -O2
-%: %.c
-	gcc $@.c -o $@ -Wall -Werror -Wextra -lm -g -pipe -fsanitize=leak,address,undefined,null -Ofast
+all: 
+	gcc ./src/test.c -o ./bin/test -Wall -Wextra -O2
+	gcc ./src/judge.c -o ./bin/judge -Wall -Wextra -O2
+run:
+	./bin/test
+clean:
+	rm ./bin/judge
+	rm ./bin/test
+	rm ./tmp/*
