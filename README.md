@@ -45,7 +45,7 @@ Result of checking will be written in terminal. </p>
   
   .ans - answer to task
   </p2>
-  <h1> DISCLAIMER: Test's folder name and contestant's task name sould be the same to work properly </h1>
+  <h1> DISCLAIMER: Task's folder name and contestant's task name sould be the same to work properly </h1>
   <h2> How to compile and run program: </h2>
   <ol> 
   <li> open terminal in directory </li>
