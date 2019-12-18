@@ -81,7 +81,7 @@ void get_cwd(char *wd)
                   
 void compile(char *cmpl_path, char *exec_path, char *name)
 {
-    char *cmd[9] = {"gcc", cmpl_path, "-o", exec_path, "-Wall", "-Werror", "-lm", "-fsanitize=leak,address,null,undefined", NULL}; 
+    char *cmd[9] = {"gcc", cmpl_path, "-o", exec_path, "-lm", NULL}; 
     if (execvp(cmd[0], cmd) < 0) {
         printf("%s - ", name);
     }
@@ -94,6 +94,9 @@ int print_header(){
     int num;
     printf("                    ");
     fd = open("global.cfg", O_RDONLY, 0777);
+    if(fd < 0){
+        perror("file descriptor");
+    }
     while(ch != '='){
         read(fd, &ch, 1);
     }
@@ -105,8 +108,7 @@ int print_header(){
         }
         ch1 = ch;
     }
-    putchar('\n');
-    close(fd);    
+    putchar('\n');    
     return count_of_tasks;
 }
 
@@ -138,15 +140,22 @@ int main(void){
     get_cwd(src_dir);
     change_dir("/../contest");
     count_of_tasks = print_header(); //print_header and count quantity of tasks
-    int * count_of_tests = (int *)malloc(sizeof(int) * count_of_tasks);//it's count of tests for each program
+    int *count_of_tests = (int *)malloc(sizeof(int) * count_of_tasks);//it's count of tests for each program
+    printf("%d", count_of_tasks);
+        
     count_of_tests = how_much_test(count_of_tests);
+    
+    printf("%d", count_of_tasks);
+
+    for(int i = 0; i < count_of_tasks; i++){
+        printf("%d", count_of_tests[i]);
+    }
     pdir = open_dir("code");
     change_dir("/code");
     get_cwd(code_dir);
     int j = 0;
     while ((pcat = readdir(pdir)) != NULL && strstr(pcat -> d_name, ".") == NULL) {
         cdir = open_dir(pcat -> d_name);
-        puts(pcat -> d_name);
         while ((ccat = readdir(cdir)) != NULL) {
             if (strstr(ccat -> d_name, ".c") != NULL) {
                 cmpl_path = get_cmpl_path(code_dir, pcat -> d_name, ccat -> d_name);
@@ -165,17 +174,21 @@ int main(void){
         change_dir("/src");
         int fd[2];
         pipe(fd);
+
         printf("%s", pcat->d_name);
         int length = strlen(pcat->d_name);
         for(int i = 0; i < 20 - length; i++){
             printf(" ");
         }
         if ((pid = fork()) == 0) {
-            dup2(1, fd[0]);
+            dup2(fd[0], 1);
+            int devNull = open("dev/null", O_WRONLY);
+            dup2(devNull, 2);
             if (execl("./test", "./test", NULL) < 0) {
                 err(1, "test");
             }
         }
+
         /* What I add*/
         int flag = 0;
         char ch;
@@ -214,6 +227,7 @@ int main(void){
             }
             printf(" ");
         }
+        free(data_from_pipe);
         /* What I add*/
         wait(NULL);
         putchar('\n');
