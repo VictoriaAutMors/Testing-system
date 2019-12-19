@@ -46,8 +46,8 @@ DIR *open_dir(char *dir)
 /* functions that work with log files */
 
 /* write error, date and time in log file */
-void write_in_log(char *error) {
-    FILE *fl = fopen("test_logs.txt", "a+");
+void write_in_log(char *file, char *error) {
+    FILE *fl = fopen(file, "a+");
     time_t rawtime;
     struct tm *timeinfo;
     if (time(&rawtime) < 0) {
@@ -58,10 +58,10 @@ void write_in_log(char *error) {
     fclose(fl);
 }
 
-/* change dir to log and go back to previous directory*/
-void logger(char *string, char *old_dir) {
+/* write register all activity in "file"*/
+void logger(char *string, char *file, char *old_dir) {
     ch_dir("../logs");
-    write_in_log(string);
+    write_in_log(file, string);
     ch_dir("..");
     ch_dir(old_dir);
 }
@@ -139,7 +139,7 @@ int get_check_type(char *line) {
         ans = CHAR;
     } else {
         sprintf(error, "no information about check type");
-        logger(error, "contest");
+        logger(error, "test_logs.txt", "contest");
         exit(1);
     }
     return ans;
@@ -153,7 +153,7 @@ int get_info(char *file, char *name, int flag) {
     int ans;
     if (fl == NULL) {
         sprintf(error, "failed to open %s ", file);
-        logger(error, "contest");
+        logger(error, "test_logs.txt", "contest");
         exit(1);
     }
     while ((line = read_line(fl)) != NULL) {
@@ -170,7 +170,8 @@ int get_info(char *file, char *name, int flag) {
         }
         free(line);
     }
-    logger("failed to get information from config files", "contest");
+    logger("failed to get information from config files", "test_logs.txt",
+                                                                 "contest");
     fclose(fl);
     exit(1);
 }
@@ -261,7 +262,7 @@ char *prepare_exec(char *name)
 /* Timer. If program works more than 5 seconds, it will be suspended*/
 void handler(void) {
     putchar('-');
-    logger("program running for too long", "contest");
+    logger("program running for too long", "test_logs.txt", "contest");
     kill(child, SIGKILL);
 }
 
@@ -269,7 +270,7 @@ void handler(void) {
 int check_all_tasks(int count, char *test_name, DIR *dir, int time) {
     FILE *fl_ans, *fl_tmp;
     ssize_t fd_data, fd_tmp;
-    int flag, status, devNull = open("/dev/null", O_WRONLY);
+    int flag, status;
     char data_name[8], ans_name[8], error[1024];
     for (int i = 1; i <= count; i++) {
         flag = 0;
@@ -286,10 +287,9 @@ int check_all_tasks(int count, char *test_name, DIR *dir, int time) {
             char *exec = prepare_exec(test_name);
             dup2(fd_data, STDIN_FILENO);
             dup2(fd_tmp, STDOUT_FILENO);
-            du2(devNull, STDERR_FILENO);
             if (execl(exec, exec, NULL) < 0) {
                 sprintf(error, "%s- failed on task %d", test_name, i);
-                logger(error, "tmp");
+                logger(error, "test_logs.txt", "tmp");
                 fd_close(fd_tmp, fd_data);
                 closedir(dir);
                 exit(ERR);
@@ -308,7 +308,7 @@ int check_all_tasks(int count, char *test_name, DIR *dir, int time) {
         } else {
             putchar('-');
             sprintf(error, "%s:Wrong answer on test %d", test_name, i);
-            logger(error, "tmp");
+            logger(error, "test_logs.txt", "tmp");
         }
         fclose(fl_tmp);
         fclose(fl_ans);
@@ -333,7 +333,7 @@ int test(void) {
             if (is_test_legit(entry_bin -> d_name) == FALSE) {
                 putchar('-');
                 sprintf(error, "%s- no test; ", entry_bin -> d_name);
-                logger(error, "contest");
+                logger(error, "test_logs.txt", "contest");
             } else {
             test_count = get_info("global.cfg", entry_bin -> d_name, COUNT);
             time = get_info("global.cfg", "task_time", COUNT);
@@ -346,7 +346,12 @@ int test(void) {
 }
 
 int main(void) {
+    ssize_t fd;
     signal(SIGALRM, (void (*)(int))handler);
+    ch_dir("../logs");
+    fd = open("Warnings&Errors.txt", O_WRONLY | O_CREAT, 0755);
+    dup2(fd, STDERR_FILENO);
     test();
+    fd_close(fd);
     return EXIT_SUCCESS;
 }
