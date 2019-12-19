@@ -17,10 +17,18 @@ Result of checking will be written in terminal. </p>
   <li> configs </li>
   <li> logs </li>
   </ol>
+  <h2> Testing system stucture </h2>
+  <p2> 
+   sources contains code for judge
+  
+   contest - contestants folder, tests and correct answers to them, config files
+       
+   tmp - temporary files like contestants binary files 
+       
+   bin - judge binary file
+   </p2>
   <h2> Prepare testing system </h2>
   <ol>
-  <li> dowload archive with Testing System </li>
-  <il> unpack archive </li>
   <li> put contestants tests in code folder </li>
   <li> put all tests in tests folder </li>
   <li> fill global.cfg and checker.cfg with data </li>
@@ -49,9 +57,8 @@ Result of checking will be written in terminal. </p>
   <h2> How to compile and run program: </h2>
   <ol> 
   <li> open terminal in directory </li>
-  <li> run in terminal: make (it will save binary files in bin directory) </li>
-  <li> open terminal in bin </li>
-  <li> run in terminal: ./judge <li>
+  <li> run in terminal: make (it will save binary files in bin directory) </l
+  <li> run in terminal: ./bin/judge <li>
   </ol>
   <h2> to clean tmp folder and binary files </h2>
   <p2> run in terminal: make clean </p2>
