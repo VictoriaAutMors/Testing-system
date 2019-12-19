@@ -13,6 +13,18 @@
 
 /* functions that work with path */
 
+
+enum return_value {
+    FALSE,
+    TRUE,
+    ERR,
+    COUNT,
+    CHECK_TYPE,
+    INT = -4,
+    CHAR = -1
+};
+
+
 char *path_malloc(void)
 {
     char *path = (char *)malloc(PATH_MAX * sizeof(char));
@@ -102,6 +114,7 @@ int print_header(){
     }
     while(read(fd, &ch, 1) > 0){
         if (ch == '='){
+            read(fd, &ch, 1);
             count_of_tasks++;
             putchar(ch1);
             putchar(' ');
@@ -112,10 +125,10 @@ int print_header(){
     return count_of_tasks;
 }
 
-int * how_much_test(int * count_of_tests){
-    char ch, ch1;
+int * how_many_test(int * count_of_tests){
+    char ch, ch1, ch2;
     int j = 0;
-    int fd = open("global.cfg", O_RDONLY, 0777);
+    int fd = open("global.cfg", O_RDONLY);
     while(ch != '='){
         read(fd, &ch, 1);
     }
@@ -124,11 +137,85 @@ int * how_much_test(int * count_of_tests){
             count_of_tests[j] = atoi(&ch);
             j++;    
         }
+        ch2 = ch1;
         ch1 = ch;
     }
     close(fd);
     return count_of_tests;
 }
+
+int get_num(char *line) {
+    int num = 0, i = 0;
+    do {
+        if (line[i] >= '0' && line[i] <= '9') {
+            num *= 10;
+            num += line[i] - '0';
+        }
+        i++;
+    } while (line[i] != ';');
+    return num;
+}
+
+/* gets type of checking */
+int get_check_type(char *line) {
+    int i = 0, ans = 0;
+    char error[1024];
+    while(line[i] != ';') {
+        i++;
+    }
+    if (line[i - 1] == 'i') {
+        ans = INT;
+    } else if (line[i - 1] == 'b') {
+        ans = CHAR;
+    } else {
+        sprintf(error, "no information about check type");
+        exit(1);
+    }
+    return ans;
+}
+
+char *read_line(FILE *fl) {
+    int len = 0;
+    char *line = (char *)malloc(LINE_MAX);
+    if (line == NULL) {
+        err(1, NULL);
+    }
+    if (fgets(line, LINE_MAX, fl) == NULL) {
+        free(line);
+        return NULL;
+    }
+    len = strlen(line);
+    line[len - 1] = '\0';
+    return line;
+}
+
+
+int get_info(char *file, char *name, int flag) {
+    FILE *fl = fopen(file, "r");
+    char *line, *tmp = NULL, error[1024];
+    int ans;
+    if (fl == NULL) {
+        sprintf(error, "failed to open %s ", file);
+        exit(1);
+    }
+    while ((line = read_line(fl)) != NULL) {
+        tmp = strstr(line, name);
+        if (tmp) {
+            if (flag == COUNT) {
+                ans = get_num(tmp);
+            } else {
+                ans = get_check_type(tmp);
+            }
+            free(line);
+            fclose(fl);
+            return ans;
+        }
+        free(line);
+    }
+    fclose(fl);
+    exit(1);
+}
+
 
 int main(void){
     pid_t pid;
@@ -139,17 +226,8 @@ int main(void){
     char code_dir[PATH_MAX], src_dir[PATH_MAX];
     get_cwd(src_dir);
     change_dir("/../contest");
-    count_of_tasks = print_header(); //print_header and count quantity of tasks
-    int *count_of_tests = (int *)malloc(sizeof(int) * count_of_tasks);//it's count of tests for each program
-    printf("%d", count_of_tasks);
-        
-    count_of_tests = how_much_test(count_of_tests);
-    
-    printf("%d", count_of_tasks);
 
-    for(int i = 0; i < count_of_tasks; i++){
-        printf("%d", count_of_tests[i]);
-    }
+    
     pdir = open_dir("code");
     change_dir("/code");
     get_cwd(code_dir);
@@ -172,16 +250,9 @@ int main(void){
         wait(NULL);
         change_dir("/../..");
         change_dir("/src");
-        int fd[2];
-        pipe(fd);
-
-        printf("%s", pcat->d_name);
-        int length = strlen(pcat->d_name);
-        for(int i = 0; i < 20 - length; i++){
-            printf(" ");
-        }
-        if ((pid = fork()) == 0) {
-            dup2(fd[0], 1);
+        puts(pcat->d_name);
+        
+        if ((pid = fork()) == 0){ 
             int devNull = open("dev/null", O_WRONLY);
             dup2(devNull, 2);
             if (execl("./test", "./test", NULL) < 0) {
@@ -189,46 +260,6 @@ int main(void){
             }
         }
 
-        /* What I add*/
-        int flag = 0;
-        char ch;
-        char * data_from_pipe = NULL;
-        int l = 0;
-        while(read(fd[1], &ch, 1) > 0){
-            data_from_pipe = (char *)realloc(data_from_pipe, sizeof(char) * (l + 1));
-            data_from_pipe[l] = ch;
-            l++;
-        }
-        close(fd[0]);
-        close(fd[1]);
-        char genererating_name;
-        for(int i = 0; i < count_of_tasks; i++){
-            genererating_name = 'A' + i;
-            int z = 0;
-            int flag = 0;
-            for(int k = 0; count_of_tests[j]; k++){
-                if(data_from_pipe[k] == genererating_name){
-                    z = k;
-                    flag = 1;
-                    break;
-                }
-            }
-            if (flag == 0){
-                printf("-");
-            }
-            else{
-                for(int k = 0; k < count_of_tests[j]; k++){
-                    if(data_from_pipe[z + k] == '-'){
-                        printf("-");
-                        break;
-                    }   
-                }
-                printf("+");
-            }
-            printf(" ");
-        }
-        free(data_from_pipe);
-        /* What I add*/
         wait(NULL);
         putchar('\n');
         change_dir("/..");
