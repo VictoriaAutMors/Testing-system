@@ -103,7 +103,6 @@ int print_header(){
     int fd;
     int count_of_tasks = 0;
     char ch, ch1;;
-    int num;
     printf("                    ");
     fd = open("global.cfg", O_RDONLY, 0777);
     if(fd < 0){
@@ -126,7 +125,7 @@ int print_header(){
 }
 
 int * how_many_test(int * count_of_tests){
-    char ch, ch1, ch2;
+    char ch, ch1;
     int j = 0;
     int fd = open("global.cfg", O_RDONLY);
     while(ch != '='){
@@ -137,7 +136,6 @@ int * how_many_test(int * count_of_tests){
             count_of_tests[j] = atoi(&ch);
             j++;    
         }
-        ch2 = ch1;
         ch1 = ch;
     }
     close(fd);
@@ -220,7 +218,6 @@ int get_info(char *file, char *name, int flag) {
 int main(void){
     pid_t pid;
     DIR *pdir, *cdir;
-    int count_of_tasks;
     struct dirent  *pcat, *ccat;
     char *cmpl_path = NULL, *exec_path = NULL;
     char code_dir[PATH_MAX], src_dir[PATH_MAX];
