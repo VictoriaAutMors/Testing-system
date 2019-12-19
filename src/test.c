@@ -269,7 +269,7 @@ void handler(void) {
 int check_all_tasks(int count, char *test_name, DIR *dir, int time) {
     FILE *fl_ans, *fl_tmp;
     ssize_t fd_data, fd_tmp;
-    int flag, status;
+    int flag, status, devNull = open("/dev/null", O_WRONLY);
     char data_name[8], ans_name[8], error[1024];
     for (int i = 1; i <= count; i++) {
         flag = 0;
@@ -286,6 +286,7 @@ int check_all_tasks(int count, char *test_name, DIR *dir, int time) {
             char *exec = prepare_exec(test_name);
             dup2(fd_data, STDIN_FILENO);
             dup2(fd_tmp, STDOUT_FILENO);
+            du2(devNull, STDERR_FILENO);
             if (execl(exec, exec, NULL) < 0) {
                 sprintf(error, "%s- failed on task %d", test_name, i);
                 logger(error, "tmp");
