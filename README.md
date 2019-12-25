@@ -57,7 +57,7 @@ Result of checking will be written in terminal. </p>
   <h2> How to compile and run program: </h2>
   <ol> 
   <li> open terminal in directory </li>
-  <li> run in terminal: make (it will save binary files in bin directory) </l
+  <li> run in terminal: make (it will save binary files in bin directory) </li>
   <li> run in terminal: ./bin/judge <li>
   </ol>
   <h2> to clean tmp folder and binary files </h2>
